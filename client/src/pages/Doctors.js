@@ -43,35 +43,6 @@ const Doctors = () => {
     );
   }
   
-  // Функция для получения иконки в зависимости от специализации врача
-  const getSpecializationIcon = (specialization) => {
-    const spec = specialization.toLowerCase();
-    
-    if (spec.includes('терапевт'))
-      return 'fa-tooth';
-    
-    if (spec.includes('ортопед') || spec.includes('протез'))
-      return 'fa-crown';
-    
-    if (spec.includes('хирург'))
-      return 'fa-syringe';
-    
-    if (spec.includes('ортодонт'))
-      return 'fa-teeth';
-    
-    if (spec.includes('дет'))
-      return 'fa-child';
-    
-    if (spec.includes('гигиен'))
-      return 'fa-shield-alt';
-    
-    if (spec.includes('имплант'))
-      return 'fa-teeth-open';
-    
-    // Иконка по умолчанию
-    return 'fa-user-md';
-  };
-  
   return (
     <div className="doctors-page">
       <div className="doctors-hero">

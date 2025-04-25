@@ -11,8 +11,16 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Настройка CORS для разрешения запросов с любого источника
+app.use(cors({
+  origin: '*', // Разрешает запросы с любого источника
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  maxAge: 86400 // кэширование preflight запросов на 24 часа
+}));
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(fileUpload({
   createParentPath: true,
@@ -959,7 +967,20 @@ app.put('/api/doctor/appointments/:id', authenticateToken, isDoctor, async (req,
   }
 });
 
-// Запуск сервера
-app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
-}); 
+// Подключаем маршруты
+// app.use('/api/auth', require('./routes/auth'));
+// app.use('/api/doctors', require('./routes/doctors')); 
+// app.use('/api/patients', require('./routes/patients'));
+// app.use('/api/services', require('./routes/services'));
+// app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/health', require('./routes/health'));
+
+// Запускаем сервер, но только если не в тестовом режиме
+if (process.env.TEST_MODE !== 'true') {
+  app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+  });
+}
+
+// Экспортируем приложение для использования в тестах
+module.exports = app; 

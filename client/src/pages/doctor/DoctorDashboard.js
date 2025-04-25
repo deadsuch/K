@@ -114,12 +114,6 @@ const DoctorDashboard = () => {
     );
   };
   
-  // Форматирование даты
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return `${date.toLocaleDateString('ru-RU')} - ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-  };
-  
   // Сообщение об отсутствии данных
   const EmptyMessage = ({ message }) => (
     <div className="empty-message">

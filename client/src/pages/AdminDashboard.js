@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Container, Row, Col, Nav, Alert, Button, Badge, Table, Spinner } from 'react-bootstrap';
+import { Container, Nav, Alert, Button, Badge, Table, Spinner } from 'react-bootstrap';
 import DoctorCard from '../components/DoctorCard';
 import ServiceCard from '../components/ServiceCard';
 import DoctorForm from '../components/DoctorForm';
@@ -31,9 +31,6 @@ const AdminDashboard = () => {
 
   const { currentUser } = useAuth();
   
-  // Ссылка на невидимый input для загрузки файлов
-  const fileInputRef = React.useRef(null);
-
   // Загрузка данных
   useEffect(() => {
     if (activeTab === 'appointments') {
@@ -334,36 +331,37 @@ const AdminDashboard = () => {
 
   const uploadPhoto = async () => {
     if (!selectedFile || !uploadingDoctorId) {
-      setError('Выберите файл для загрузки');
+      setError('Файл или врач не выбраны');
       return;
     }
-
+    
     try {
       const token = localStorage.getItem('token');
-      
-      // Создаем объект FormData для отправки файла
       const formData = new FormData();
       formData.append('photo', selectedFile);
       
-      // Отправляем запрос на сервер
-      const response = await axios.post(
+      await axios.post(
         `http://localhost:5000/api/admin/doctors/${uploadingDoctorId}/photo`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
       
-      setSuccessMessage('Фотография врача успешно обновлена');
+      // Обновляем список врачей
+      fetchDoctors();
+      
+      // Очищаем состояние
       setSelectedFile(null);
       setUploadingDoctorId(null);
       setShowPhotoUploadForm(false);
-      fetchDoctors();
+      
+      showSuccessMessage('Фотография успешно загружена');
     } catch (error) {
-      setError(error.response?.data?.error || 'Ошибка при загрузке фотографии');
+      setError('Ошибка при загрузке фотографии');
       console.error('Ошибка:', error);
     }
   };
