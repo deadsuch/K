@@ -357,6 +357,137 @@ app.get('/api/profile', authenticateToken, (req, res) => {
   );
 });
 
+// Обновление профиля пользователя
+app.put('/api/profile', authenticateToken, (req, res) => {
+  const { fullName, email, currentPassword, newPassword, phone } = req.body;
+  const userId = req.user.userId;
+  
+  // Проверяем, существует ли пользователь
+  db.get(
+    `SELECT * FROM users WHERE id = ?`,
+    [userId],
+    (err, user) => {
+      if (err) {
+        return res.status(500).json({ error: 'Ошибка сервера' });
+      }
+
+      if (!user) {
+        return res.status(404).json({ error: 'Пользователь не найден' });
+      }
+      
+      // Если пользователь хочет изменить пароль, проверяем текущий пароль
+      if (newPassword) {
+        if (!currentPassword) {
+          return res.status(400).json({ error: 'Необходимо указать текущий пароль' });
+        }
+        
+        bcrypt.compare(currentPassword, user.password, (err, result) => {
+          if (err) {
+            return res.status(500).json({ error: 'Ошибка сервера' });
+          }
+          
+          if (!result) {
+            return res.status(401).json({ error: 'Текущий пароль неверен' });
+          }
+          
+          // Если текущий пароль верен, хешируем новый пароль
+          bcrypt.hash(newPassword, 10, (err, hash) => {
+            if (err) {
+              return res.status(500).json({ error: 'Ошибка хеширования пароля' });
+            }
+            
+            updateUserProfile(userId, fullName, email, hash, phone, user.email, res);
+          });
+        });
+      } else {
+        // Если пароль не меняется, обновляем только другие поля
+        updateUserProfile(userId, fullName, email, user.password, phone, user.email, res);
+      }
+    }
+  );
+});
+
+// Вспомогательная функция для обновления профиля
+function updateUserProfile(userId, fullName, email, password, phone, currentEmail, res) {
+  // Проверяем, не занят ли новый email, если он изменился
+  if (email && email !== currentEmail) {
+    db.get(
+      `SELECT id FROM users WHERE email = ? AND id != ?`,
+      [email, userId],
+      (err, existingUser) => {
+        if (err) {
+          return res.status(500).json({ error: 'Ошибка сервера' });
+        }
+        
+        if (existingUser) {
+          return res.status(400).json({ error: 'Пользователь с таким email уже существует' });
+        }
+        
+        // Если email не занят, выполняем обновление
+        performUserUpdate(userId, fullName, email, password, phone, res);
+      }
+    );
+  } else {
+    // Если email не изменился или не указан, сразу выполняем обновление
+    performUserUpdate(userId, fullName, email, password, phone, res);
+  }
+}
+
+// Функция для выполнения обновления
+function performUserUpdate(userId, fullName, email, password, phone, res) {
+  const updates = {};
+  const params = [];
+  
+  if (fullName) {
+    updates.full_name = fullName;
+    params.push(fullName);
+  }
+  
+  if (email) {
+    updates.email = email;
+    params.push(email);
+  }
+  
+  if (password) {
+    updates.password = password;
+    params.push(password);
+  }
+  
+  if (phone !== undefined) {
+    updates.phone = phone;
+    params.push(phone);
+  }
+  
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'Не указаны данные для обновления' });
+  }
+  
+  const setClause = Object.keys(updates)
+    .map(field => `${field} = ?`)
+    .join(', ');
+  
+  params.push(userId);
+  
+  db.run(
+    `UPDATE users SET ${setClause} WHERE id = ?`,
+    params,
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Ошибка при обновлении профиля' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Пользователь не найден' });
+      }
+      
+      res.json({ 
+        message: 'Профиль успешно обновлен',
+        updated: Object.keys(updates)
+      });
+    }
+  );
+}
+
 // Получение списка услуг
 app.get('/api/services', (req, res) => {
   db.all(`SELECT * FROM services`, (err, services) => {

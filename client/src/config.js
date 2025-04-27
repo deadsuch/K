@@ -3,13 +3,20 @@
  * 
  * Автоматически определяет URL API в зависимости от окружения:
  * - При запуске в Docker: http://localhost/api (через nginx proxy)
- * - При локальной разработке: http://localhost:5000
+ * - При локальной разработке: http://localhost:5000/api
  */
 
 // Конфигурационный файл для клиентской части приложения
 
-// Базовый URL API
-const API_URL = window.location.origin;
+// Определяем базовый URL API
+let API_URL;
+if (process.env.NODE_ENV === 'production') {
+  // В продакшене (в Docker) API доступен через nginx proxy на том же домене
+  API_URL = `${window.location.origin}/api`;
+} else {
+  // В режиме разработки используем прямой адрес API
+  API_URL = 'http://localhost:5000/api';
+}
 
 // Базовый URL для загруженных файлов
 const UPLOADS_URL = `${API_URL}/uploads`;

@@ -6,6 +6,8 @@ import DoctorCard from '../components/DoctorCard';
 import ServiceCard from '../components/ServiceCard';
 import DoctorForm from '../components/DoctorForm';
 import ServiceForm from '../components/ServiceForm';
+import ProfileEdit from '../components/ProfileEdit';
+import { API_URL } from '../config';
 import './Dashboard.css';
 import './AdminDashboard.css';
 
@@ -28,8 +30,11 @@ const AdminDashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingDoctorId, setUploadingDoctorId] = useState(null);
   const [showPhotoUploadForm, setShowPhotoUploadForm] = useState(false);
+  
+  // Состояние для редактирования профиля
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   
   // Загрузка данных
   useEffect(() => {
@@ -47,7 +52,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/admin/appointments', {
+      const response = await axios.get(`${API_URL}/admin/appointments`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -66,7 +71,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/admin/doctors', {
+      const response = await axios.get(`${API_URL}/admin/doctors`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -85,7 +90,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/admin/services', {
+      const response = await axios.get(`${API_URL}/admin/services`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -103,7 +108,7 @@ const AdminDashboard = () => {
   const updateAppointmentStatus = async (id, status) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/admin/appointments/${id}`, 
+      await axios.put(`${API_URL}/admin/appointments/${id}`, 
         { status },
         {
           headers: {
@@ -149,7 +154,7 @@ const AdminDashboard = () => {
       if (editingDoctor) {
         // Редактирование существующего врача
         await axios.put(
-          `http://localhost:5000/api/admin/doctors/${editingDoctor.id}`,
+          `${API_URL}/admin/doctors/${editingDoctor.id}`,
           formData,
           {
             headers: {
@@ -161,7 +166,7 @@ const AdminDashboard = () => {
       } else {
         // Добавление нового врача
         await axios.post(
-          'http://localhost:5000/api/admin/doctors',
+          `${API_URL}/admin/doctors`,
           formData,
           {
             headers: {
@@ -189,7 +194,7 @@ const AdminDashboard = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/admin/doctors/${doctorId}`, {
+      await axios.delete(`${API_URL}/admin/doctors/${doctorId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -224,7 +229,7 @@ const AdminDashboard = () => {
       if (editingService) {
         // Обновление существующей услуги
         await axios.put(
-          `http://localhost:5000/api/admin/services/${editingService.id}`,
+          `${API_URL}/admin/services/${editingService.id}`,
           serviceData,
           {
             headers: {
@@ -236,7 +241,7 @@ const AdminDashboard = () => {
       } else {
         // Создание новой услуги
         await axios.post(
-          'http://localhost:5000/api/admin/services',
+          `${API_URL}/admin/services`,
           serviceData,
           {
             headers: {
@@ -264,7 +269,7 @@ const AdminDashboard = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/admin/services/${serviceId}`, {
+      await axios.delete(`${API_URL}/admin/services/${serviceId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -341,7 +346,7 @@ const AdminDashboard = () => {
       formData.append('photo', selectedFile);
       
       await axios.post(
-        `http://localhost:5000/api/admin/doctors/${uploadingDoctorId}/photo`,
+        `${API_URL}/admin/doctors/${uploadingDoctorId}/photo`,
         formData,
         {
           headers: {
@@ -370,6 +375,12 @@ const AdminDashboard = () => {
     setSelectedFile(null);
     setUploadingDoctorId(null);
     setShowPhotoUploadForm(false);
+  };
+
+  // Обработчик обновления профиля
+  const handleProfileUpdate = (updatedUser) => {
+    updateUserProfile(updatedUser);
+    showSuccessMessage('Профиль успешно обновлен');
   };
 
   return (
@@ -632,6 +643,13 @@ const AdminDashboard = () => {
             <div>
               <div className="section-header">
                 <h2><i className="fas fa-user-circle me-2"></i> Профиль администратора</h2>
+                <Button 
+                  variant="outline-primary" 
+                  size="sm"
+                  onClick={() => setShowEditProfile(true)}
+                >
+                  <i className="fas fa-edit me-1"></i> Редактировать профиль
+                </Button>
               </div>
               
               <div className="admin-card">
@@ -639,8 +657,16 @@ const AdminDashboard = () => {
                   <h4>Данные учетной записи</h4>
                   <div style={{ marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <i className="fas fa-user" style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}></i>
+                      <span><strong>ФИО:</strong> {currentUser?.full_name}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <i className="fas fa-envelope" style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}></i>
                       <span><strong>Email:</strong> {currentUser?.email}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <i className="fas fa-phone" style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}></i>
+                      <span><strong>Телефон:</strong> {currentUser?.phone || 'Не указан'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <i className="fas fa-user-shield" style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}></i>
@@ -654,6 +680,19 @@ const AdminDashboard = () => {
                   </p>
                 </div>
               </div>
+              
+              {/* Модальное окно редактирования профиля */}
+              {showEditProfile && (
+                <div className="profile-edit-overlay">
+                  <ProfileEdit 
+                    onCancel={() => setShowEditProfile(false)}
+                    onProfileUpdate={(user) => {
+                      handleProfileUpdate(user);
+                      setShowEditProfile(false);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

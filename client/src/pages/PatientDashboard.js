@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import ProfileEdit from '../components/ProfileEdit';
+import { API_URL } from '../config';
 import './Dashboard.css';
 
 const PatientDashboard = () => {
@@ -9,14 +11,15 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showEditProfile, setShowEditProfile] = useState(false);
   
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   
   // Загрузка записей пациента
   const fetchAppointments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/patient/appointments', {
+      const response = await axios.get(`${API_URL}/patient/appointments`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -38,7 +41,7 @@ const PatientDashboard = () => {
   const cancelAppointment = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/patient/appointments/${id}`, {}, {
+      await axios.put(`${API_URL}/patient/appointments/${id}`, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -64,6 +67,17 @@ const PatientDashboard = () => {
     return new Date(dateString).toLocaleDateString('ru-RU', options);
   };
   
+  // Обработчик обновления профиля
+  const handleProfileUpdate = (updatedUser) => {
+    updateUserProfile(updatedUser);
+    setSuccessMessage('Профиль успешно обновлен');
+    
+    // Через 3 секунды скрываем сообщение об успехе
+    setTimeout(() => {
+      setSuccessMessage('');
+    }, 3000);
+  };
+  
   return (
     <div className="container">
       <div className="dashboard">
@@ -86,13 +100,33 @@ const PatientDashboard = () => {
         
         <div className="dashboard-section">
           <div className="card profile-card">
-            <h2>Мой профиль</h2>
+            <div className="profile-header">
+              <h2>Мой профиль</h2>
+              <button 
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => setShowEditProfile(true)}
+              >
+                <i className="fas fa-edit"></i> Редактировать
+              </button>
+            </div>
             <div className="profile-info">
               <p><strong>ФИО:</strong> {currentUser?.full_name}</p>
               <p><strong>Email:</strong> {currentUser?.email}</p>
               <p><strong>Телефон:</strong> {currentUser?.phone || 'Не указан'}</p>
             </div>
           </div>
+          
+          {showEditProfile && (
+            <div className="profile-edit-overlay">
+              <ProfileEdit 
+                onCancel={() => setShowEditProfile(false)}
+                onProfileUpdate={(user) => {
+                  handleProfileUpdate(user);
+                  setShowEditProfile(false);
+                }}
+              />
+            </div>
+          )}
         </div>
         
         <div className="dashboard-section">

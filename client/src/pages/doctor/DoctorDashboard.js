@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { Container, Alert, Button, Badge, Table, Spinner } from 'react-bootstrap';
+import ProfileEdit from '../../components/ProfileEdit';
+import { API_URL } from '../../config';
 import '../Dashboard.css';
 import '../AdminDashboard.css';
 
@@ -10,8 +12,9 @@ const DoctorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   
   // Загрузка данных
   useEffect(() => {
@@ -23,7 +26,7 @@ const DoctorDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/doctor/appointments', {
+      const response = await axios.get(`${API_URL}/doctor/appointments`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -41,7 +44,7 @@ const DoctorDashboard = () => {
   const updateAppointmentStatus = async (appointmentId, status) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/doctor/appointments/${appointmentId}`, 
+      await axios.put(`${API_URL}/doctor/appointments/${appointmentId}`, 
         { status },
         {
           headers: {
@@ -120,6 +123,12 @@ const DoctorDashboard = () => {
       <p>{message}</p>
     </div>
   );
+  
+  // Обработчик обновления профиля
+  const handleProfileUpdate = (updatedUser) => {
+    updateUserProfile(updatedUser);
+    showSuccessMessage('Профиль успешно обновлен');
+  };
   
   return (
     <Container fluid>
@@ -220,7 +229,17 @@ const DoctorDashboard = () => {
           
           {/* Профиль врача */}
           <div className="mt-5 section-header">
-            <h2><i className="fas fa-user-md me-2"></i> Профиль врача</h2>
+            <h2>
+              <i className="fas fa-user-md me-2"></i> Профиль врача
+              <Button 
+                variant="outline-primary" 
+                size="sm" 
+                className="ms-3"
+                onClick={() => setShowEditProfile(true)}
+              >
+                <i className="fas fa-edit me-1"></i> Редактировать профиль
+              </Button>
+            </h2>
           </div>
           
           <div className="admin-card">
@@ -236,6 +255,10 @@ const DoctorDashboard = () => {
                   <span><strong>Email:</strong> {currentUser?.email}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fas fa-phone" style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}></i>
+                  <span><strong>Телефон:</strong> {currentUser?.phone || 'Не указан'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <i className="fas fa-user-md" style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}></i>
                   <span><strong>Роль:</strong> Врач</span>
                 </div>
@@ -246,6 +269,19 @@ const DoctorDashboard = () => {
               </p>
             </div>
           </div>
+          
+          {/* Модальное окно редактирования профиля */}
+          {showEditProfile && (
+            <div className="profile-edit-overlay">
+              <ProfileEdit 
+                onCancel={() => setShowEditProfile(false)}
+                onProfileUpdate={(user) => {
+                  handleProfileUpdate(user);
+                  setShowEditProfile(false);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </Container>

@@ -87,6 +87,14 @@ export const AuthProvider = ({ children }) => {
     setUserRole(null);
   };
 
+  // Обновление профиля пользователя
+  const updateUserProfile = (updatedUser) => {
+    setCurrentUser(updatedUser);
+    if (updatedUser.role) {
+      setUserRole(updatedUser.role);
+    }
+  };
+
   // Возвращаем значение контекста
   const value = {
     currentUser,
@@ -96,7 +104,8 @@ export const AuthProvider = ({ children }) => {
     error,
     register,
     login,
-    logout
+    logout,
+    updateUserProfile
   };
 
   return (
