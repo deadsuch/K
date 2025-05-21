@@ -27,6 +27,8 @@ const Login = () => {
       setLoading(true);
       setError('');
       
+      console.log('Попытка входа с данными:', { email: formData.email });
+      
       const response = await login(formData.email, formData.password);
       
       // В зависимости от роли пользователя, перенаправляем на соответствующую страницу
@@ -39,11 +41,17 @@ const Login = () => {
       }
       
     } catch (error) {
+      console.error('Подробности ошибки входа:', error);
+      console.error('Ответ сервера:', error.response?.data);
+      console.error('Статус ошибки:', error.response?.status);
       setError(error.response?.data?.error || 'Ошибка при авторизации');
-      console.error('Ошибка:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGitHubLogin = () => {
+    window.location.href = 'http://localhost:5000/api/auth/github';
   };
   
   return (
@@ -113,6 +121,18 @@ const Login = () => {
               ) : (
                 'Войти'
               )}
+            </button>
+
+            <div className="auth-divider">
+              <span>или</span>
+            </div>
+
+            <button 
+              type="button" 
+              className="github-auth-btn"
+              onClick={handleGitHubLogin}
+            >
+              <i className="fab fa-github"></i> Войти через GitHub
             </button>
           </form>
           

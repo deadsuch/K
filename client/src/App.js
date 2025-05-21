@@ -14,6 +14,7 @@ import BookAppointment from './pages/BookAppointment';
 import Services from './pages/Services';
 import Doctors from './pages/Doctors';
 import NotFound from './pages/NotFound';
+import AuthCallback from './pages/AuthCallback';
 
 // Auth контекст
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -74,6 +75,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/services" element={<Services />} />
               <Route path="/doctors" element={<Doctors />} />
+              <Route path="/auth-callback" element={<AuthCallback />} />
 
               {/* Роутер для определения правильной панели управления */}
               <Route path="/dashboard-router" element={<DashboardRouter />} />

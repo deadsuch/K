@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fileUpload = require('express-fileupload');
 const fs = require('fs');
+const passport = require('passport');
+const session = require('express-session');
 
 // Инициализация Express приложения
 const app = express();
@@ -27,6 +29,17 @@ app.use(fileUpload({
   limits: { fileSize: 5 * 1024 * 1024 } // Ограничение размера файла - 5MB
 }));
 
+// Настройка сессий для Passport
+app.use(session({
+  secret: 'your_session_secret',
+  resave: false,
+  saveUninitialized: false
+}));
+
+// Инициализация Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Создаем папку для загрузки файлов, если её нет
 const uploadDir = path.join(__dirname, 'uploads/doctors');
 if (!fs.existsSync(uploadDir)) {
@@ -37,7 +50,7 @@ if (!fs.existsSync(uploadDir)) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Секретный ключ для JWT
-const JWT_SECRET = 'dental-clinic-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 // Инициализация базы данных
 const dbPath = path.resolve(__dirname, 'dental_clinic.db');
@@ -57,11 +70,12 @@ function initializeDatabase() {
     db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+        email TEXT UNIQUE,
+        password TEXT,
         full_name TEXT NOT NULL,
         phone TEXT,
         role TEXT NOT NULL,
+        github_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -144,6 +158,26 @@ function initializeDatabase() {
       )
     `);
 
+    // Проверяем, существует ли колонка github_id в таблице пользователей
+    db.all("PRAGMA table_info(users)", (err, rows) => {
+      if (err) {
+        console.error('Ошибка при проверке структуры таблицы:', err);
+        return;
+      }
+
+      // Если колонка github_id не существует, добавляем её
+      const hasGithubId = rows && rows.some(row => row.name === 'github_id');
+      if (!hasGithubId) {
+        db.run(`ALTER TABLE users ADD COLUMN github_id TEXT`, (err) => {
+          if (err) {
+            console.error('Ошибка при добавлении колонки github_id:', err);
+          } else {
+            console.log('Колонка github_id успешно добавлена в таблицу users');
+          }
+        });
+      }
+    });
+
     // Добавление тестовых данных (админ/врач)
     db.get("SELECT * FROM users WHERE email = 'admin@dental.com'", (err, row) => {
       if (err) {
@@ -175,6 +209,72 @@ function initializeDatabase() {
                       }
                     }
                   );
+                }
+              }
+            );
+          }
+        });
+      }
+    });
+    
+    // Добавление тестового врача
+    db.get("SELECT * FROM users WHERE email = 'doctor@dental.com'", (err, row) => {
+      if (err) {
+        console.error(err.message);
+      }
+      if (!row) {
+        bcrypt.hash('doctor123', 10, (err, hash) => {
+          if (err) {
+            console.error(err.message);
+          } else {
+            db.run(
+              `INSERT INTO users (email, password, full_name, role) 
+               VALUES (?, ?, ?, ?)`,
+              ['doctor@dental.com', hash, 'Иванов Иван Иванович', 'doctor'],
+              function(err) {
+                if (err) {
+                  console.error(err.message);
+                } else {
+                  console.log('Тестовый врач создан');
+                  db.run(
+                    `INSERT INTO doctors (user_id, specialization, experience, description) 
+                     VALUES (?, ?, ?, ?)`,
+                    [this.lastID, 'Стоматолог-терапевт', 5, 'Опытный стоматолог-терапевт'],
+                    (err) => {
+                      if (err) {
+                        console.error(err.message);
+                      } else {
+                        console.log('Данные тестового врача добавлены');
+                      }
+                    }
+                  );
+                }
+              }
+            );
+          }
+        });
+      }
+    });
+    
+    // Добавление тестового пациента
+    db.get("SELECT * FROM users WHERE email = 'patient@example.com'", (err, row) => {
+      if (err) {
+        console.error(err.message);
+      }
+      if (!row) {
+        bcrypt.hash('patient123', 10, (err, hash) => {
+          if (err) {
+            console.error(err.message);
+          } else {
+            db.run(
+              `INSERT INTO users (email, password, full_name, phone, role) 
+               VALUES (?, ?, ?, ?, ?)`,
+              ['patient@example.com', hash, 'Петров Петр Петрович', '+7 (999) 123-45-67', 'patient'],
+              function(err) {
+                if (err) {
+                  console.error(err.message);
+                } else {
+                  console.log('Тестовый пациент создан');
                 }
               }
             );
@@ -1105,6 +1205,10 @@ app.put('/api/doctor/appointments/:id', authenticateToken, isDoctor, async (req,
 // app.use('/api/services', require('./routes/services'));
 // app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/health', require('./routes/health'));
+
+// Подключаем маршруты авторизации через GitHub
+const authRoutes = require('./routes/auth')(db);
+app.use('/api/auth', authRoutes);
 
 // Запускаем сервер, но только если не в тестовом режиме
 if (process.env.TEST_MODE !== 'true') {

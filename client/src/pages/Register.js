@@ -48,6 +48,10 @@ const Register = () => {
     }
   };
 
+  const handleGitHubRegister = () => {
+    window.location.href = 'http://localhost:5000/api/auth/github';
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-container">
@@ -168,6 +172,18 @@ const Register = () => {
               ) : (
                 'Зарегистрироваться'
               )}
+            </button>
+
+            <div className="auth-divider">
+              <span>или</span>
+            </div>
+
+            <button 
+              type="button" 
+              className="github-auth-btn"
+              onClick={handleGitHubRegister}
+            >
+              <i className="fab fa-github"></i> Зарегистрироваться через GitHub
             </button>
           </form>
           

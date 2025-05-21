@@ -69,13 +69,26 @@ export const AuthProvider = ({ children }) => {
   // Авторизация пользователя
   const login = async (email, password) => {
     try {
+      console.log('Отправка запроса на вход:', `${API_URL}/login`, { email, password: '***' });
+      
       const response = await axios.post(`${API_URL}/login`, { email, password });
+      console.log('Получен ответ при входе:', response.data);
+      
       localStorage.setItem('token', response.data.token);
       await fetchUserProfile(response.data.token);
       setError('');
       return response.data;
     } catch (error) {
-      setError(error.response?.data?.error || 'Ошибка при авторизации');
+      console.error('Login error details:', error);
+      console.error('Status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      console.error('Request config:', error.config);
+      
+      if (error.response?.status === 401) {
+        setError('Неверный email или пароль');
+      } else {
+        setError(error.response?.data?.error || 'Ошибка при авторизации');
+      }
       throw error;
     }
   };
